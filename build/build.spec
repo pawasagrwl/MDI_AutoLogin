@@ -58,6 +58,10 @@ a = Analysis(
         'keyring.backends.Windows.WinVaultKeyring',
         'keyring.backends.macOS',
         'PIL._tkinter_finder',
+        # Requests dependencies
+        'certifi',  # Required by requests for SSL certificates
+        'urllib3',  # Required by requests
+        'charset_normalizer',  # Required by requests
         'idna',
         'idna.core',
         'idna.idnadata',

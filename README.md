@@ -39,6 +39,7 @@ python app.py
 
 ### Building Executable
 
+**Local Build:**
 ```bash
 cd build
 build.bat
@@ -46,7 +47,35 @@ build.bat
 
 The executable will be created in `app/dist/MDI AutoLogin.exe`
 
+**Automated Build (Recommended):**
+The repository includes GitHub Actions that automatically build and create releases. See [Creating a Release](#creating-a-release) below.
+
 For detailed build instructions, see [Build Guide](docs/BUILD_GUIDE.md).
+
+### Creating a Release
+
+To create a new release with automated build:
+
+**Windows (Batch):**
+```bash
+release.bat
+```
+
+**Windows (PowerShell):**
+```powershell
+.\release.ps1
+```
+
+The script will:
+1. Prompt for a version number (e.g., `1.0.0`)
+2. Create a git tag (e.g., `v1.0.0`)
+3. Push the tag to GitHub
+4. GitHub Actions will automatically:
+   - Build the Windows EXE
+   - Create a GitHub Release
+   - Attach the EXE to the release
+
+You can monitor the build at: https://github.com/pawasagrwl/MDI_AutoLogin/actions
 
 ### Running Tests
 

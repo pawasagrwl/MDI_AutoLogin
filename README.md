@@ -82,7 +82,6 @@ mdi_auto_login_app/
 │   └── ui/       # User interface components
 ├── build/        # Build scripts and configuration
 ├── docs/         # Additional documentation
-└── archive/      # Old/unused code
 ```
 
 ---

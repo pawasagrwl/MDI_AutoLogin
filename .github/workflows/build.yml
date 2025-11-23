@@ -1,0 +1,94 @@
+name: Build Windows EXE
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:  # Allows manual triggering
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r build/requirements-build.txt
+      
+      - name: Build EXE with PyInstaller
+        working-directory: ./app
+        run: |
+          pyinstaller ../build/build.spec --workpath=build --distpath=dist --clean
+      
+      - name: Verify EXE exists
+        run: |
+          if not exist "app\dist\MDI AutoLogin.exe" (
+            echo "Build failed: EXE not found"
+            exit 1
+          )
+          echo "Build successful: EXE found"
+      
+      - name: Get version from tag or input
+        id: get_version
+        shell: pwsh
+        run: |
+          $ref = "${{ github.ref }}"
+          $eventName = "${{ github.event_name }}"
+          
+          if ($ref -match '^refs/tags/(.+)$') {
+            $version = $matches[1]
+            Write-Output "Using tag version: $version"
+          } elseif ($eventName -eq "workflow_dispatch") {
+            $inputVersion = "${{ github.event.inputs.version }}"
+            if ($inputVersion) {
+              $version = $inputVersion
+            } else {
+              $version = "v$(Get-Date -Format 'yyyy.MM.dd')"
+            }
+            Write-Output "Using input/date version: $version"
+          } else {
+            $version = "v$(Get-Date -Format 'yyyy.MM.dd')"
+            Write-Output "Using date version: $version"
+          }
+          Write-Output "version=$version" >> $env:GITHUB_OUTPUT
+      
+      - name: Rename EXE with version
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          $exePath = "app\dist\MDI AutoLogin.exe"
+          $newName = "MDI_AutoLogin-$version.exe"
+          Rename-Item -Path $exePath -NewName $newName
+          Write-Output "Renamed to: $newName"
+      
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MDI_AutoLogin-${{ steps.get_version.outputs.version }}
+          path: app/dist/MDI_AutoLogin-*.exe
+          retention-days: 30
+      
+      - name: Create Release (if tag)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: app/dist/MDI_AutoLogin-*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

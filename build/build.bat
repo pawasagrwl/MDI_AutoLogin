@@ -26,7 +26,11 @@ if exist "MDI AutoLogin.spec" del /q "MDI AutoLogin.spec"
 
 REM Build using the spec file (spec file path relative to current dir)
 REM Use --clean to ensure fresh build
+REM Note: onefile mode may show a harmless temp directory cleanup warning on exit
 pyinstaller ..\build\build.spec --workpath=build --distpath=dist --clean
+
+REM Alternative: Use onedir mode (no warning, but creates a folder):
+REM pyinstaller ..\build\build-onedir.spec --workpath=build --distpath=dist --clean
 
 REM Check if build succeeded
 if errorlevel 1 (

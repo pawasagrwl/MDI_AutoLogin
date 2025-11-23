@@ -79,7 +79,7 @@ def test_connected_to_target(mock_target, mock_portal):
 def test_analyze_login_response_success():
     """Test login response analysis for success"""
     cfg = {"login_error_patterns": {}}
-    code, text = analyze_login_response(cfg, 200, "http://example.com", "login successful")
+    code, _ = analyze_login_response(cfg, 200, "http://example.com", "login successful")
     assert code == "ok"
 
 
@@ -90,7 +90,7 @@ def test_analyze_login_response_quota_exceeded():
             "quota_exceeded": r"\bquota\b.*\bexceeded\b",
         }
     }
-    code, text = analyze_login_response(
+    code, _ = analyze_login_response(
         cfg, 200, "http://example.com", "Your data quota has been exceeded"
     )
     assert code == "quota_exceeded"
@@ -103,7 +103,7 @@ def test_analyze_login_response_bad_credentials():
             "bad_credentials": "invalid.*credential",
         }
     }
-    code, text = analyze_login_response(
+    code, _ = analyze_login_response(
         cfg, 200, "http://example.com", "Invalid user credentials"
     )
     assert code == "bad_credentials"
@@ -116,7 +116,7 @@ def test_analyze_login_response_already_logged_in():
             "already_logged_in": "already.*logged.*in",
         }
     }
-    code, text = analyze_login_response(
+    code, _ = analyze_login_response(
         cfg, 200, "http://example.com", "You are already logged in"
     )
     assert code == "already_logged_in"

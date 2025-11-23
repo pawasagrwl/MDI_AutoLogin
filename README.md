@@ -26,6 +26,8 @@ A lightweight Windows tray application that automatically logs you into the **MD
 
 ## 🛠 Development
 
+> **📋 Development Checklist**: See [CHECKLIST.md](CHECKLIST.md) for a comprehensive checklist to follow when making code changes or adding features.
+
 ### Running from Source
 
 ```bash

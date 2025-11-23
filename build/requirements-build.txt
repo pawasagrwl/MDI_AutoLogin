@@ -8,6 +8,7 @@ keyring>=25.6.0
 pystray>=0.19.5
 pillow>=11.3.0
 six>=1.17.0  # Required by pystray
+psutil>=5.9.0  # Required for single-instance enforcement and old version cleanup
 
 # Build tool
 pyinstaller>=6.16.0

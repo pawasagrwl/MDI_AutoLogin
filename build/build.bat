@@ -5,16 +5,7 @@ REM This creates a standalone Windows executable
 echo Building MDI AutoLogin...
 echo.
 
-REM Kill all instances of the executable (try normal first, then admin if needed)
-echo Stopping running instances...
-taskkill /IM "MDI AutoLogin.exe" /F >nul 2>&1
-if errorlevel 1 (
-    REM Normal kill failed, try with admin (but don't fail if this also fails)
-    echo Attempting to stop with admin privileges...
-    powershell -Command "Start-Process -FilePath 'taskkill' -ArgumentList '/IM', 'MDI AutoLogin.exe', '/F' -Verb RunAs -Wait -WindowStyle Hidden" >nul 2>&1
-)
-REM Wait a moment for processes to fully terminate and files to be released
-timeout /t 2 /nobreak >nul 2>&1
+
 
 REM Change to app directory for build
 cd /d "%~dp0..\app"

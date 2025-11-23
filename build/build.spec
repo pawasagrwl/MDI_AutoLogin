@@ -74,6 +74,8 @@ a = Analysis(
         'idna',
         'idna.core',
         'idna.idnadata',
+        # Single-instance enforcement
+        'psutil',  # Required for detecting and killing old instances
     ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3'),
     hookspath=[],
     hooksconfig={},

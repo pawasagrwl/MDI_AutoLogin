@@ -11,6 +11,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write  # Required to create releases and upload artifacts
+
 jobs:
   build:
     runs-on: windows-latest
@@ -174,6 +177,9 @@ jobs:
           files: app/dist/MDI_AutoLogin-*.exe
           draft: false
           prerelease: false
+          generate_release_notes: true
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -19,12 +19,14 @@ timeout /t 2 /nobreak >nul 2>&1
 REM Change to app directory for build
 cd /d "%~dp0..\app"
 
-REM Clean previous builds
+REM Clean previous builds thoroughly
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
+if exist "MDI AutoLogin.spec" del /q "MDI AutoLogin.spec"
 
-REM Build using the optimized spec file (spec file path relative to current dir)
-pyinstaller ..\build\build.spec --workpath=build --distpath=dist
+REM Build using the spec file (spec file path relative to current dir)
+REM Use --clean to ensure fresh build
+pyinstaller ..\build\build.spec --workpath=build --distpath=dist --clean
 
 REM Check if build succeeded
 if errorlevel 1 (

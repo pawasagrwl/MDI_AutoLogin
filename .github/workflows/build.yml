@@ -32,7 +32,11 @@ jobs:
       - name: Build EXE with PyInstaller
         working-directory: ./app
         run: |
-          pyinstaller ../build/build.spec --workpath=build --distpath=dist --clean
+          # Use absolute path to spec file to avoid path issues
+          $specPath = Resolve-Path "..\build\build.spec"
+          Write-Output "Using spec file: $specPath"
+          pyinstaller $specPath --workpath=build --distpath=dist --clean
+        shell: pwsh
       
       - name: Verify EXE exists
         run: |

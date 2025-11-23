@@ -29,13 +29,33 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r build/requirements-build.txt
       
-      - name: Build EXE with PyInstaller
-        working-directory: ./app
+      - name: List directory structure
         run: |
-          # Use absolute path to spec file to avoid path issues
-          $specPath = Resolve-Path "..\build\build.spec"
+          Write-Output "Current directory:"
+          pwd
+          Write-Output "Root contents:"
+          Get-ChildItem
+          Write-Output "Build directory:"
+          if (Test-Path "build") { Get-ChildItem build } else { Write-Output "build/ not found" }
+          Write-Output "App directory:"
+          if (Test-Path "app") { Get-ChildItem app } else { Write-Output "app/ not found" }
+        shell: pwsh
+      
+      - name: Build EXE with PyInstaller
+        run: |
+          # Build from root directory, spec file paths are relative to spec location
+          $rootDir = Get-Location
+          $specPath = Join-Path $rootDir "build\build.spec"
+          
+          if (-not (Test-Path $specPath)) {
+            Write-Error "Spec file not found at: $specPath"
+            exit 1
+          }
+          
           Write-Output "Using spec file: $specPath"
-          pyinstaller $specPath --workpath=build --distpath=dist --clean
+          Write-Output "Changing to app directory..."
+          Set-Location app
+          pyinstaller ..\build\build.spec --workpath=build --distpath=dist --clean
         shell: pwsh
       
       - name: Verify EXE exists

@@ -1,7 +1,9 @@
 # Build artifacts
 app/build/
 app/dist/
+# Ignore auto-generated spec files, but keep build/build.spec
 *.spec
+!build/build.spec
 *.pyc
 __pycache__/
 

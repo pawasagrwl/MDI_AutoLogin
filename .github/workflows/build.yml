@@ -29,29 +29,92 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r build/requirements-build.txt
       
+      - name: Diagnostic - Repository Structure
+        run: |
+          Write-Output "=== DIAGNOSTIC INFORMATION ==="
+          Write-Output "Current directory: $PWD"
+          Write-Output ""
+          Write-Output "=== ROOT DIRECTORY CONTENTS ==="
+          Get-ChildItem -Force | Format-Table Name, Mode, Length -AutoSize
+          Write-Output ""
+          Write-Output "=== CHECKING FOR BUILD DIRECTORY ==="
+          if (Test-Path "build") {
+            Write-Output "✓ 'build' directory EXISTS"
+            Write-Output "Contents of build/:"
+            Get-ChildItem "build" | Format-Table Name, Mode, Length -AutoSize
+          } else {
+            Write-Output "✗ 'build' directory NOT FOUND"
+          }
+          Write-Output ""
+          Write-Output "=== CHECKING FOR BUILD.SPEC ==="
+          $specPaths = @(
+            "build\build.spec",
+            "build\build.SPEC",
+            "Build\build.spec",
+            "BUILD\build.spec",
+            ".\build\build.spec",
+            "$PWD\build\build.spec"
+          )
+          foreach ($path in $specPaths) {
+            if (Test-Path $path) {
+              Write-Output "✓ FOUND: $path"
+              $fullPath = Resolve-Path $path
+              Write-Output "  Full path: $fullPath"
+            }
+          }
+          Write-Output ""
+          Write-Output "=== SEARCHING FOR ALL .SPEC FILES ==="
+          Get-ChildItem -Recurse -Filter "*.spec" -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Output "Found: $($_.FullName)"
+          }
+          Write-Output ""
+          Write-Output "=== CHECKING FOR APP DIRECTORY ==="
+          if (Test-Path "app") {
+            Write-Output "✓ 'app' directory EXISTS"
+            Write-Output "Contents of app/:"
+            Get-ChildItem "app" -Directory | Select-Object -First 10 Name
+          } else {
+            Write-Output "✗ 'app' directory NOT FOUND"
+          }
+          Write-Output ""
+          Write-Output "=== ALL TOP-LEVEL DIRECTORIES ==="
+          Get-ChildItem -Directory | ForEach-Object {
+            Write-Output "  - $($_.Name)"
+          }
+        shell: pwsh
+      
       - name: Build EXE with PyInstaller
         run: |
           # Match the build.bat approach: change to app directory, then run pyinstaller
-          # The spec file expects to be run from app/ directory (paths are ../app/app.py)
           Write-Output "Current directory: $PWD"
-          Write-Output "Listing root directory:"
-          Get-ChildItem | Select-Object Name
           
-          Write-Output "Verifying build directory exists:"
+          # Find the spec file
+          $specPath = $null
           if (Test-Path "build\build.spec") {
-            Write-Output "✓ build\build.spec found"
+            $specPath = "build\build.spec"
+          } elseif (Test-Path ".\build\build.spec") {
+            $specPath = ".\build\build.spec"
           } else {
-            Write-Error "✗ build\build.spec NOT FOUND"
-            Write-Output "Available directories:"
-            Get-ChildItem -Directory | Select-Object Name
-            exit 1
+            # Search for it
+            $found = Get-ChildItem -Recurse -Filter "build.spec" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+              $specPath = $found.FullName
+              Write-Output "Found spec file at: $specPath"
+            } else {
+              Write-Error "build.spec file not found anywhere!"
+              exit 1
+            }
           }
           
+          Write-Output "Using spec file: $specPath"
           Write-Output "Changing to app directory..."
           Set-Location app
           Write-Output "Now in: $PWD"
-          Write-Output "Running PyInstaller..."
-          pyinstaller ..\build\build.spec --workpath=build --distpath=dist --clean
+          
+          # Calculate relative path from app/ to spec file
+          $relativeSpecPath = if ($specPath -like "build\*") { "..\$specPath" } else { $specPath }
+          Write-Output "Running PyInstaller with: $relativeSpecPath"
+          pyinstaller $relativeSpecPath --workpath=build --distpath=dist --clean
         shell: pwsh
       
       - name: Verify EXE exists

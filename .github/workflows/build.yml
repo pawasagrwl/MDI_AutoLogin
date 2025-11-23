@@ -119,11 +119,13 @@ jobs:
       
       - name: Verify EXE exists
         run: |
-          if not exist "app\dist\MDI AutoLogin.exe" (
-            echo "Build failed: EXE not found"
+          $exePath = "app\dist\MDI AutoLogin.exe"
+          if (-not (Test-Path $exePath)) {
+            Write-Error "Build failed: EXE not found at $exePath"
             exit 1
-          )
-          echo "Build successful: EXE found"
+          }
+          Write-Output "Build successful: EXE found at $exePath"
+        shell: pwsh
       
       - name: Get version from tag or input
         id: get_version

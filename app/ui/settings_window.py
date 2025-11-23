@@ -177,25 +177,45 @@ class SettingsWindow:
                 else:
                     set_autostart(True, exe)
             else:
-                if not set_autostart(True, exe):
-                    msg_error(APP_NAME, "Could not enable start with Windows.")
+                # Already admin - try to create Scheduled Task first
+                if not startup.enable_startup(exe, prefer_task=True):
+                    # If task creation failed, fall back to Run key
+                    if not set_autostart(True, exe):
+                        msg_error(APP_NAME, "Could not enable start with Windows.")
         else:
+            # Disable autostart - try to remove both task and Run key
             prompt = (
-                "Administrator permission is required to remove the Start-with-Windows task.\n\n"
+                "Administrator permission is required to fully remove the Start-with-Windows task.\n\n"
                 "After you click Yes, Windows will show a UAC prompt—choose Yes there as well."
             )
-            if not set_autostart(False, exe):
-                if not startup.is_admin():
-                    if ask_yes_no(APP_NAME, prompt):
-                        if startup.relaunch_as_admin(resume_target=resume_target, flag="--disable-autostart"):
-                            self.on_cancel()
-                            return
+            if not startup.is_admin():
+                # Try to remove Run key first (doesn't need admin)
+                from startup import disable_startup
+                disable_startup()
+                # Check if task exists by trying to query it
+                import subprocess
+                try:
+                    result = subprocess.run(['schtasks', '/Query', '/TN', 'MDI AutoLogin'], 
+                                          capture_output=True, text=True)
+                    if result.returncode == 0:
+                        # Task exists, need admin to remove it
+                        if ask_yes_no(APP_NAME, prompt):
+                            if startup.relaunch_as_admin(resume_target=resume_target, flag="--disable-autostart"):
+                                self.on_cancel()
+                                return
+                        # User declined or elevation failed - keep checkbox enabled
+                        cfg["auto_start_on_launch"] = True
+                        save_config(cfg)
+                        self.auto_start_var.set(True)
+                except Exception:
+                    pass  # Couldn't check, assume it's removed
+            else:
+                # Already admin - can remove both
+                if not startup.disable_startup():
                     msg_error(APP_NAME, "Could not disable start with Windows.")
-                else:
-                    msg_error(APP_NAME, "Could not disable start with Windows.")
-                cfg["auto_start_on_launch"] = True
-                save_config(cfg)
-                self.auto_start_var.set(True)
+                    cfg["auto_start_on_launch"] = True
+                    save_config(cfg)
+                    self.auto_start_var.set(True)
 
         log.info("💾 Settings saved.")
         msg_info(APP_NAME, "Settings saved.")

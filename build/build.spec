@@ -4,7 +4,7 @@
 
 import os
 import sys
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 block_cipher = None
 
@@ -46,26 +46,35 @@ a = Analysis(
     ['../app/app.py'],
     pathex=['../app'],
     binaries=[],
-    datas=tcl_tk_data,
+    datas=tcl_tk_data + collect_data_files('certifi'),  # Include certifi's certificate bundle
     hiddenimports=[
+        # Built-in modules that PyInstaller sometimes misses
         'unicodedata',
+        'hmac',  # Required by urllib3 (used by requests)
+        # Pystray dependencies
         'pystray._win32',
         'pystray._darwin',
         'six',
+        # Keyring and Windows backend
         'keyring',
         'keyring.backends',
         'keyring.backends.Windows',
         'keyring.backends.Windows.WinVaultKeyring',
         'keyring.backends.macOS',
+        # PIL/Pillow for pystray icon handling
         'PIL._tkinter_finder',
-        # Requests dependencies
+        # Requests dependencies - collect all submodules to ensure everything is included
         'certifi',  # Required by requests for SSL certificates
         'urllib3',  # Required by requests
+        'urllib3.util',  # Required by urllib3
+        'urllib3.util.ssl_',  # Required by urllib3
+        'urllib3.packages',  # Required by urllib3
+        'urllib3.packages.ssl_match_hostname',  # Required by urllib3
         'charset_normalizer',  # Required by requests
         'idna',
         'idna.core',
         'idna.idnadata',
-    ] + collect_submodules('idna'),
+    ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=runtime_hooks,

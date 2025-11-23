@@ -180,6 +180,32 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ steps.get_version.outputs.version }}
           name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ## MDI AutoLogin ${{ steps.get_version.outputs.version }}
+            
+            ### 📦 What's Included
+            - Standalone Windows executable (no Python required)
+            - Automatic Wi-Fi login for MDI network
+            - System tray integration
+            - Secure credential storage
+            
+            ### 🚀 Installation
+            1. Download `MDI_AutoLogin-${{ steps.get_version.outputs.version }}.exe`
+            2. Run the executable
+            3. Configure your credentials in Settings
+            4. Enable "Start with Windows" for automatic login
+            
+            ### 📝 Notes
+            - Credentials are stored securely in Windows Credential Manager
+            - First run will prompt you to configure settings
+            - The app runs in the system tray (look for the icon)
+            
+            ### ⚠️ Important
+            - When closing the app, you may see a harmless "Failed to remove temporary directory" warning. This is a known PyInstaller behavior and doesn't affect functionality.
+            
+            ### 🔗 Links
+            - [Full Documentation](https://github.com/pawasagrwl/MDI_AutoLogin#readme)
+            - [Report Issues](https://github.com/pawasagrwl/MDI_AutoLogin/issues)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

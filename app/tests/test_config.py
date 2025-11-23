@@ -18,6 +18,10 @@ from config import (
 
 def test_load_config_defaults(temp_config_dir):
     """Test that load_config returns defaults when no config exists"""
+    # Ensure config file doesn't exist
+    if CONFIG_PATH.exists():
+        CONFIG_PATH.unlink()
+    
     config = load_config()
     assert config["ssid"] == DEFAULT_SSID
     assert config["username"] == ""

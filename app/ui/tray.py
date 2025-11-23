@@ -124,16 +124,18 @@ class TrayApp:
     def _confirm(self, title: str, text: str) -> bool:
         return ask_yes_no(title, text)
 
-    def reset_log_file(self):
-        if not self._confirm(APP_NAME, "Clear the log file?"):
+    def reset_log_file(self, silent=False):
+        if not silent and not self._confirm(APP_NAME, "Clear the log file?"):
             return
         try:
             LOG_PATH.write_text("", encoding="utf-8")
             log.info("🗑️ Log file cleared.")
-            msg_info(APP_NAME, "Log file cleared.")
+            if not silent:
+                msg_info(APP_NAME, "Log file cleared.")
         except Exception as e:
             log.exception("Failed to clear log")
-            msg_error(APP_NAME, f"Could not clear log: {e}")
+            if not silent:
+                msg_error(APP_NAME, f"Could not clear log: {e}")
 
     def reset_settings(self):
         if not self._confirm(APP_NAME, "Reset settings to defaults? This will remove saved username and settings."):
@@ -162,9 +164,11 @@ class TrayApp:
             return
         try:
             self.stop_worker()
+            # Reset log file
+            self.reset_log_file(silent=True)
+            # Reset config and credentials
             try:
                 if CONFIG_PATH.exists(): CONFIG_PATH.unlink()
-                if LOG_PATH.exists(): LOG_PATH.unlink()
             except Exception:
                 pass
             try:
@@ -201,6 +205,12 @@ class TrayApp:
             self.tk_root.wait_window(win.root)
             # Re-read config because first run may have updated flags
             cfg = load_config()
+            # Check if user actually saved credentials (not cancelled)
+            if not cfg.get("username") or not get_password(cfg.get("username", "")):
+                log.info("⚠️ No credentials configured. Exiting.")
+                msg_info(APP_NAME, "Credentials are required. Please run the app again and configure your settings.")
+                self.quit()
+                return
             # Show the Control Panel once on literal first run
             self.open_control_panel()
         else:

@@ -31,6 +31,7 @@ class AutoLoginWorker(threading.Thread):
         self.cooldown_until = 0.0
         self.backoff_s = None
         self.last_post_ts = 0.0
+        self._credentials_warned = False  # Only warn once about missing credentials
 
         self.cfg = load_config()
         self._cfg_mtime = self._config_mtime()
@@ -52,6 +53,9 @@ class AutoLoginWorker(threading.Thread):
             self._cfg_mtime = mtime
             self.username = self.cfg.get("username", "")
             self.password = get_password(self.username)
+            # Reset warning flag if credentials are now available
+            if self.username and self.password:
+                self._credentials_warned = False
 
     def _log_once_per_state(self, now_online: bool, captive: bool):
         state = "online" if now_online else ("captive" if captive else "offline")
@@ -130,8 +134,16 @@ class AutoLoginWorker(threading.Thread):
                     if not self.username or not self.password:
                         self.password = get_password(self.username)
                     if not self.username or not self.password:
-                        log.info("⚠️ No credentials set yet.")
+                        # Only log once to avoid spam
+                        if not self._credentials_warned:
+                            log.warning("⚠️ No credentials configured. Please set username and password in Settings.")
+                            self._credentials_warned = True
+                        # Don't attempt login without credentials
+                        self._wait_with_event(float(cfg.get("base_interval", 5)))
+                        continue
                     else:
+                        # Reset warning flag if credentials are now available
+                        self._credentials_warned = False
                         if time.time() - self.last_post_ts >= float(cfg.get("post_grace_s", 6)):
                             self.last_post_ts = time.time()
                             diag = login_with_diagnostics(cfg, self.username, self.password)

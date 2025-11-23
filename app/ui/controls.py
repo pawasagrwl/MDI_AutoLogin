@@ -5,7 +5,7 @@ from tkinter import ttk
 from .settings_window import SettingsWindow
 
 from config import (
-    APP_NAME, DEFAULT_SSID, LOG_PATH, CONFIG_PATH, SERVICE_NAME,
+    APP_NAME, APP_VERSION, DEVELOPER_NAME, DEFAULT_SSID, LOG_PATH, CONFIG_PATH, SERVICE_NAME,
     load_config, save_config, get_password, set_password,
 )
 from net import (
@@ -87,12 +87,32 @@ class ControlPanel:
     def __init__(self, parent_root, tray_app):
         self.tray_app = tray_app
         self.root = tk.Toplevel(parent_root)
-        self.root.title(f"{APP_NAME} — Control Panel")
-        self.root.geometry("820x460")
-        self.root.minsize(700, 380)
+        self.root.title(f"{APP_NAME} v{APP_VERSION} — Control Panel")
+        self.root.geometry("820x500")
+        self.root.minsize(700, 420)
 
         self.cfg = load_config()
         apply_theme(self.root, self.cfg.get("dark_mode", False))
+
+        # Disclaimer notice at the top
+        disclaimer_frame = ttk.Frame(self.root, padding=(12, 8, 12, 8))
+        disclaimer_frame.pack(fill="x", pady=(0, 4))
+        disclaimer_text = (
+            "⚠️ DISCLAIMER: The developer is not responsible for any consequences of using this app. "
+            "While this app uses no external resources from your PC and the source code is open, "
+            "you are solely responsible for using and sharing this application."
+        )
+        disclaimer_label = tk.Label(
+            disclaimer_frame,
+            text=disclaimer_text,
+            font=("Segoe UI", 8),
+            fg="#d32f2f" if not self.cfg.get("dark_mode", False) else "#ff6b6b",
+            bg=self.root.cget("background"),
+            wraplength=780,
+            justify="left",
+            anchor="w"
+        )
+        disclaimer_label.pack(fill="x", anchor="w")
 
         top = ttk.Frame(self.root, padding=(12,10,12,6)); top.pack(fill="x")
         left = ttk.Frame(top); left.pack(side="left", fill="x", expand=True)
@@ -154,6 +174,18 @@ class ControlPanel:
         self.txt.configure(yscrollcommand=self.scroll_y.set)
         self.txt.pack(side="left", fill="both", expand=True)
         self.scroll_y.pack(side="right", fill="y")
+
+        # Footer with attribution
+        footer = ttk.Frame(self.root, padding=(12, 4, 12, 8))
+        footer.pack(fill="x", side="bottom")
+        footer_label = tk.Label(
+            footer,
+            text=f"Made by {DEVELOPER_NAME}",
+            font=("Segoe UI", 8),
+            fg="#666666" if not self.cfg.get("dark_mode", False) else "#999999",
+            bg=self.root.cget("background")
+        )
+        footer_label.pack(side="left", anchor="w")
 
         self._refresh_status()
         self._refresh_log()

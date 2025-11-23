@@ -7,6 +7,8 @@ from tkinter import ttk
 
 from config import (
     APP_NAME,
+    APP_VERSION,
+    DEVELOPER_NAME,
     DEFAULT_SSID,
     get_password,
     is_autostart_enabled,
@@ -26,12 +28,32 @@ class SettingsWindow:
     def __init__(self, parent_root, first_run=False):
         self.first_run = first_run
         self.root = tk.Toplevel(parent_root)
-        self.root.title(f"{APP_NAME} — {'Welcome' if first_run else 'Settings'}")
-        self.root.geometry("420x340")
+        self.root.title(f"{APP_NAME} v{APP_VERSION} — {'Welcome' if first_run else 'Settings'}")
+        self.root.geometry("420x400")
         self.root.resizable(False, False)
 
         cfg = load_config()
         apply_theme(self.root, cfg.get("dark_mode", False))
+
+        # Disclaimer notice at the top
+        disclaimer_frame = ttk.Frame(self.root, padding=(12, 8, 12, 8))
+        disclaimer_frame.pack(fill="x", pady=(0, 4))
+        disclaimer_text = (
+            "⚠️ DISCLAIMER: The developer is not responsible for any consequences of using this app. "
+            "While this app uses no external resources from your PC and the source code is open, "
+            "you are solely responsible for using and sharing this application."
+        )
+        disclaimer_label = tk.Label(
+            disclaimer_frame,
+            text=disclaimer_text,
+            font=("Segoe UI", 8),
+            fg="#d32f2f" if not cfg.get("dark_mode", False) else "#ff6b6b",
+            bg=self.root.cget("background"),
+            wraplength=380,
+            justify="left",
+            anchor="w"
+        )
+        disclaimer_label.pack(fill="x", anchor="w")
 
         frm = ttk.Frame(self.root, padding=12)
         frm.pack(fill="both", expand=True)
@@ -84,6 +106,18 @@ class SettingsWindow:
         btns.grid(row=7, column=0, columnspan=2, pady=12)
         ttk.Button(btns, text="Save", command=self.on_save).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="Cancel", command=self.on_cancel).pack(side="left")
+
+        # Footer with attribution
+        footer = ttk.Frame(self.root, padding=(12, 4, 12, 8))
+        footer.pack(fill="x", side="bottom")
+        footer_label = tk.Label(
+            footer,
+            text=f"Made by {DEVELOPER_NAME}",
+            font=("Segoe UI", 8),
+            fg="#666666" if not cfg.get("dark_mode", False) else "#999999",
+            bg=self.root.cget("background")
+        )
+        footer_label.pack(side="left", anchor="w")
 
     def on_cancel(self):
         try:

@@ -1,5 +1,7 @@
 # app.py
 import logging
+# Ensure unicodedata is available early (required by idna/requests)
+import unicodedata  # noqa: F401
 from config import setup_logger
 from ui import run_app
 

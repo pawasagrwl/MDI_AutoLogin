@@ -5,13 +5,16 @@ REM This creates a standalone Windows executable
 echo Building MDI AutoLogin...
 echo.
 
-REM Kill all instances of the executable (request admin only if needed)
+REM Kill all instances of the executable (try normal first, then admin if needed)
 echo Stopping running instances...
 taskkill /IM "MDI AutoLogin.exe" /F >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Requesting admin to kill tasks...
-    powershell -Command "Start-Process -FilePath 'taskkill' -ArgumentList '/IM', 'MDI AutoLogin.exe', '/F' -Verb RunAs -Wait -WindowStyle Hidden"
+if errorlevel 1 (
+    REM Normal kill failed, try with admin (but don't fail if this also fails)
+    echo Attempting to stop with admin privileges...
+    powershell -Command "Start-Process -FilePath 'taskkill' -ArgumentList '/IM', 'MDI AutoLogin.exe', '/F' -Verb RunAs -Wait -WindowStyle Hidden" >nul 2>&1
 )
+REM Wait a moment for processes to fully terminate and files to be released
+timeout /t 2 /nobreak >nul 2>&1
 
 REM Change to app directory for build
 cd /d "%~dp0..\app"
@@ -35,11 +38,6 @@ REM If we get here, build succeeded
 echo.
 echo Build successful!
 echo Executable location: app\dist\MDI AutoLogin.exe
-echo.
-echo Next steps:
-echo 1. Test the executable on a clean Windows machine
-echo 2. Sign the executable with a code signing certificate (recommended)
-echo 3. Submit to VirusTotal for scanning if needed
 echo.
 pause
 

@@ -29,32 +29,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r build/requirements-build.txt
       
-      - name: List directory structure
-        run: |
-          Write-Output "Current directory:"
-          pwd
-          Write-Output "Root contents:"
-          Get-ChildItem
-          Write-Output "Build directory:"
-          if (Test-Path "build") { Get-ChildItem build } else { Write-Output "build/ not found" }
-          Write-Output "App directory:"
-          if (Test-Path "app") { Get-ChildItem app } else { Write-Output "app/ not found" }
-        shell: pwsh
-      
       - name: Build EXE with PyInstaller
         run: |
-          # Build from root directory, spec file paths are relative to spec location
-          $rootDir = Get-Location
-          $specPath = Join-Path $rootDir "build\build.spec"
+          # Match the build.bat approach: change to app directory, then run pyinstaller
+          # The spec file expects to be run from app/ directory (paths are ../app/app.py)
+          Write-Output "Current directory: $PWD"
+          Write-Output "Listing root directory:"
+          Get-ChildItem | Select-Object Name
           
-          if (-not (Test-Path $specPath)) {
-            Write-Error "Spec file not found at: $specPath"
+          Write-Output "Verifying build directory exists:"
+          if (Test-Path "build\build.spec") {
+            Write-Output "✓ build\build.spec found"
+          } else {
+            Write-Error "✗ build\build.spec NOT FOUND"
+            Write-Output "Available directories:"
+            Get-ChildItem -Directory | Select-Object Name
             exit 1
           }
           
-          Write-Output "Using spec file: $specPath"
           Write-Output "Changing to app directory..."
           Set-Location app
+          Write-Output "Now in: $PWD"
+          Write-Output "Running PyInstaller..."
           pyinstaller ..\build\build.spec --workpath=build --distpath=dist --clean
         shell: pwsh
       

@@ -14,6 +14,19 @@ from startup import (
 )
 
 import keyring
+import platform
+
+# Explicitly set keyring backend for Windows to ensure it works in PyInstaller bundles
+if platform.system() == "Windows":
+    try:
+        from keyring.backends.Windows import WinVaultKeyring
+        keyring.set_keyring(WinVaultKeyring())
+    except ImportError:
+        # Backend not available, will use default
+        pass
+    except Exception:
+        # Other error, will use default
+        pass
 
 APP_NAME = "MDI AutoLogin"
 SERVICE_NAME = "MDI_AutoLogin"
@@ -69,11 +82,24 @@ def save_config(cfg):
     CONFIG_PATH.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
 def get_password(username: str) -> str:
-    return keyring.get_password(SERVICE_NAME, username) or "" if username else ""
+    if not username:
+        return ""
+    try:
+        return keyring.get_password(SERVICE_NAME, username) or ""
+    except Exception as e:
+        log = logging.getLogger("mdi.config")
+        log.error("Failed to get password from keyring: %s", e)
+        return ""
 
 def set_password(username: str, password: str):
-    if username:
+    if not username:
+        return
+    try:
         keyring.set_password(SERVICE_NAME, username, password)
+    except Exception as e:
+        log = logging.getLogger("mdi.config")
+        log.error("Failed to set password in keyring: %s", e)
+        raise
 
 def is_autostart_enabled() -> bool:
     return startup_status()

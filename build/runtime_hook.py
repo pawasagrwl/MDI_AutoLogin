@@ -4,46 +4,62 @@ import os
 import sys
 import warnings
 
-# Ensure critical modules are available early
-try:
-    import unicodedata
-except ImportError:
-    pass
+# Comprehensive runtime hook to ensure all critical modules are imported early
+# This helps PyInstaller detect and include all necessary modules
 
-# Ensure http module is available (required by urllib.request)
-try:
-    import http
-    import http.client
-except ImportError:
-    pass
+# Core built-in modules
+_import_safely = lambda m: __import__(m, fromlist=[''])
 
-# Ensure urllib modules are available (standard library, not urllib3)
-try:
-    import urllib.request
-    import urllib.parse
-    import urllib.error
-except ImportError:
-    pass
+# Core modules
+for module in ['unicodedata', 'hmac', 'hashlib', 'configparser', 'pkgutil', 
+               'importlib', 'importlib.util', 'importlib.metadata']:
+    try:
+        _import_safely(module)
+    except ImportError:
+        pass
 
-# Ensure certifi is available (required by requests for SSL certificates)
-try:
-    import certifi
-except ImportError:
-    pass
+# HTTP/URL modules
+for module in ['http', 'http.client', 'http.server', 'http.cookiejar',
+               'urllib', 'urllib.request', 'urllib.parse', 'urllib.error']:
+    try:
+        _import_safely(module)
+    except ImportError:
+        pass
 
-# Ensure backports are available (used by various packages)
-try:
-    import backports.tarfile
-except ImportError:
-    pass
+# Email modules
+for module in ['email', 'email.message', 'email.policy', 'email.utils']:
+    try:
+        _import_safely(module)
+    except ImportError:
+        pass
 
-# Ensure jaraco packages are available (used by keyring)
-try:
-    import jaraco.context
-    import jaraco.classes
-    import jaraco.functools
-except ImportError:
-    pass
+# Encoding modules
+for module in ['encodings', 'encodings.idna', 'encodings.utf_8', 
+               'encodings.ascii', 'encodings.latin_1']:
+    try:
+        _import_safely(module)
+    except ImportError:
+        pass
+
+# JSON and data
+for module in ['json', 'json.encoder', 'json.decoder', 'csv', 'pickle']:
+    try:
+        _import_safely(module)
+    except ImportError:
+        pass
+
+# Third-party packages
+for module in ['certifi', 'urllib3', 'requests', 'keyring', 
+               'jaraco.context', 'jaraco.classes', 'jaraco.functools',
+               'backports.tarfile', 'psutil', 'pystray', 'PIL',
+               'idna', 'charset_normalizer', 'importlib_metadata', 'zipp']:
+    try:
+        _import_safely(module)
+    except ImportError:
+        pass
+
+# Clean up
+del _import_safely
 
 # Note: PyInstaller's "Failed to remove temporary directory" warning
 # is shown as a Windows MessageBox by the bootloader (C code), not Python.

@@ -48,31 +48,139 @@ a = Analysis(
     binaries=[],
     datas=tcl_tk_data + collect_data_files('certifi'),  # Include certifi's certificate bundle
     hiddenimports=[
-        # Built-in modules that PyInstaller sometimes misses
+        # ===== COMPREHENSIVE BUILT-IN MODULES =====
+        # Core built-in modules that PyInstaller commonly misses
         'unicodedata',
-        'hmac',  # Required by urllib3 (used by requests)
-        'http',  # Required by urllib.request (used by jaraco.context)
+        'hmac',
+        'hashlib',
+        'configparser',
+        'pkgutil',
+        'importlib',
+        'importlib.util',
+        'importlib.metadata',
+        'importlib_metadata',
+        
+        # HTTP/URL modules
+        'http',
         'http.client',
         'http.server',
         'http.cookiejar',
-        'urllib',  # Standard library urllib (not urllib3)
+        'http.cookies',
+        'urllib',
         'urllib.request',
         'urllib.parse',
         'urllib.error',
         'urllib.response',
-        'email',  # Sometimes required by urllib
+        'urllib.robotparser',
+        
+        # Email modules
+        'email',
         'email.message',
         'email.policy',
-        'encodings',  # Required for text encoding
+        'email.utils',
+        'email.encoders',
+        'email.mime',
+        'email.mime.text',
+        'email.mime.multipart',
+        
+        # Encoding modules
+        'encodings',
         'encodings.idna',
         'encodings.utf_8',
         'encodings.ascii',
         'encodings.latin_1',
-        'pkgutil',  # Used for package discovery
-        # Pystray dependencies
+        'encodings.cp1252',
+        'encodings.utf_16',
+        'encodings.utf_32',
+        
+        # XML/HTML parsing
+        'xml',
+        'xml.parsers',
+        'xml.parsers.expat',
+        'xml.sax',
+        'xml.sax.handler',
+        'html',
+        'html.parser',
+        
+        # JSON and data formats
+        'json',
+        'json.encoder',
+        'json.decoder',
+        'csv',
+        'pickle',
+        'pickletools',
+        
+        # Compression
+        'gzip',
+        'zipfile',
+        'tarfile',
+        'bz2',
+        'lzma',
+        
+        # Cryptography
+        'secrets',
+        'base64',
+        'binascii',
+        
+        # Date/time
+        'datetime',
+        'calendar',
+        'time',
+        
+        # Threading/multiprocessing
+        'threading',
+        'queue',
+        'multiprocessing',
+        'concurrent',
+        'concurrent.futures',
+        
+        # Path and file operations
+        'pathlib',
+        'os.path',
+        'shutil',
+        'tempfile',
+        'glob',
+        'fnmatch',
+        
+        # Logging
+        'logging',
+        'logging.handlers',
+        'logging.config',
+        
+        # Regular expressions
+        're',
+        
+        # Collections and data structures
+        'collections',
+        'collections.abc',
+        'collections.ordered_dict',
+        'collections.deque',
+        'collections.defaultdict',
+        'collections.namedtuple',
+        'collections.Counter',
+        'collections.ChainMap',
+        'itertools',
+        'functools',
+        'operator',
+        
+        # String operations
+        'string',
+        'textwrap',
+        'difflib',
+        
+        # Type hints
+        'typing',
+        'typing_extensions',
+        
+        # ===== THIRD-PARTY PACKAGES =====
+        # Pystray
+        'pystray',
         'pystray._win32',
         'pystray._darwin',
+        'pystray._base',
         'six',
+        'six.moves',
+        
         # Keyring and Windows backend
         'keyring',
         'keyring.backends',
@@ -81,35 +189,112 @@ a = Analysis(
         'keyring.backends.windows',
         'keyring.backends.windows.WinVaultKeyring',
         'keyring.backends.macOS',
+        'keyring.util',
+        
         # Jaraco packages (used by keyring)
         'jaraco',
         'jaraco.classes',
         'jaraco.context',
         'jaraco.functools',
-        # PIL/Pillow for pystray icon handling
+        'jaraco.text',
+        
+        # PIL/Pillow
+        'PIL',
         'PIL._tkinter_finder',
-        # Requests dependencies - collect all submodules to ensure everything is included
-        'certifi',  # Required by requests for SSL certificates
-        'urllib3',  # Required by requests
-        'urllib3.util',  # Required by urllib3
-        'urllib3.util.ssl_',  # Required by urllib3
-        'urllib3.packages',  # Required by urllib3 (may not exist in newer urllib3)
-        'urllib3.packages.ssl_match_hostname',  # Required by urllib3 (may not exist in newer urllib3)
-        'urllib3.contrib',  # Additional urllib3 modules
-        'urllib3.contrib.pyopenssl',  # SSL support
-        'charset_normalizer',  # Required by requests
+        'PIL.Image',
+        'PIL.ImageDraw',
+        
+        # Requests and HTTP libraries
+        'requests',
+        'requests.adapters',
+        'requests.auth',
+        'requests.cookies',
+        'requests.models',
+        'requests.sessions',
+        'requests.structures',
+        'requests.utils',
+        'requests.compat',
+        'requests.packages',
+        'requests.packages.urllib3',
+        
+        # Certifi (SSL certificates)
+        'certifi',
+        'certifi.core',
+        
+        # Urllib3
+        'urllib3',
+        'urllib3.util',
+        'urllib3.util.ssl_',
+        'urllib3.util.retry',
+        'urllib3.util.connection',
+        'urllib3.util.request',
+        'urllib3.util.response',
+        'urllib3.util.url',
+        'urllib3.packages',
+        'urllib3.packages.ssl_match_hostname',
+        'urllib3.contrib',
+        'urllib3.contrib.pyopenssl',
+        'urllib3.contrib.socks',
+        'urllib3.poolmanager',
+        'urllib3.connectionpool',
+        'urllib3.exceptions',
+        
+        # Charset normalizer
+        'charset_normalizer',
+        'charset_normalizer.api',
+        'charset_normalizer.legacy',
+        'charset_normalizer.models',
+        'charset_normalizer.utils',
+        
+        # IDNA
         'idna',
         'idna.core',
         'idna.idnadata',
-        # Backports (used by various packages)
+        'idna.package_data',
+        'idna.intranges',
+        'idna.uts46data',
+        
+        # Backports
         'backports',
         'backports.tarfile',
+        
         # Single-instance enforcement
-        'psutil',  # Required for detecting and killing old instances
-        # Additional common dependencies that might be missed
-        'importlib_metadata',  # Used by various packages
-        'zipp',  # Used by importlib_metadata
-    ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3') + collect_submodules('backports') + collect_submodules('jaraco'),
+        'psutil',
+        'psutil._common',
+        'psutil._compat',
+        'psutil._psplatform',
+        'psutil._pswindows',
+        
+        # Additional metadata
+        'zipp',
+        'packaging',
+        'packaging.version',
+        'packaging.specifiers',
+        'packaging.requirements',
+        
+        # Date utilities
+        'dateutil',
+        'python_dateutil',
+        
+        # More utilities
+        'more_itertools',
+    ] + (
+        # Collect ALL submodules for major packages to ensure nothing is missed
+        collect_submodules('idna') +
+        collect_submodules('certifi') +
+        collect_submodules('urllib3') +
+        collect_submodules('backports') +
+        collect_submodules('jaraco') +
+        collect_submodules('keyring') +
+        collect_submodules('requests') +
+        collect_submodules('charset_normalizer') +
+        collect_submodules('pystray') +
+        collect_submodules('PIL') +
+        collect_submodules('psutil') +
+        collect_submodules('importlib_metadata') +
+        collect_submodules('zipp') +
+        collect_submodules('packaging')
+    ),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=runtime_hooks,

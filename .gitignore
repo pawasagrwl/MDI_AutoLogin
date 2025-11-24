@@ -40,3 +40,7 @@ htmlcov/
 archive/__pycache__/
 archive/*.pyc
 
+# others
+release.bat
+release.pst1
+CHECKLIST.md

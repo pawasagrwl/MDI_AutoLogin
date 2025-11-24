@@ -139,12 +139,12 @@ jobs:
           Write-Output "=== PYINSTALLER BUILD ANALYSIS ==="
           Write-Output ""
           
-          # Check for build warnings
+          # Check for build warnings (PyInstaller uses workpath=build, so files are in app\build\build)
           Write-Output "=== CHECKING BUILD LOG FOR WARNINGS ==="
-          $buildLog = "app\build\MDI AutoLogin\warn-MDI AutoLogin.txt"
+          $buildLog = "app\build\build\warn-build.txt"
           if (Test-Path $buildLog) {
             Write-Output "Found build warnings log:"
-            $warnings = Get-Content $buildLog -ErrorAction SilentlyContinue
+            $warnings = Get-Content $buildLog -ErrorAction SilentlyContinue | Select-Object -First 100
             if ($warnings) {
               Write-Output $warnings
             } else {
@@ -157,10 +157,16 @@ jobs:
           
           # Check for analysis file
           Write-Output "=== CHECKING FOR ANALYSIS FILE ==="
-          $analysisFile = "app\build\MDI AutoLogin\Analysis-00.toc"
+          $analysisFile = "app\build\build\Analysis-00.toc"
           if (Test-Path $analysisFile) {
             Write-Output "✓ Analysis file found"
             Write-Output "  This file contains information about collected modules"
+            # Try to extract some module names from the TOC file
+            $tocContent = Get-Content $analysisFile -ErrorAction SilentlyContinue | Select-Object -First 50
+            if ($tocContent) {
+              Write-Output "  Sample modules from TOC:"
+              $tocContent | Select-Object -First 10 | ForEach-Object { Write-Output "    $_" }
+            }
           } else {
             Write-Output "✗ Analysis file not found"
           }
@@ -168,14 +174,18 @@ jobs:
           
           # Try to extract module information from build directory
           Write-Output "=== CHECKING COLLECTED MODULES ==="
-          $buildDir = "app\build\MDI AutoLogin"
+          $buildDir = "app\build\build"
           if (Test-Path $buildDir) {
             $pyFiles = Get-ChildItem -Path $buildDir -Recurse -Filter "*.pyc" -ErrorAction SilentlyContinue | Select-Object -First 50
             Write-Output "Found $($pyFiles.Count) compiled Python files (showing first 50)"
             $pyFiles | ForEach-Object {
-              $modulePath = $_.FullName.Replace($buildDir, "").Replace("\", ".").Replace(".pyc", "")
-              Write-Output "  - $modulePath"
+              $modulePath = $_.FullName.Replace($buildDir, "").TrimStart("\").Replace("\", ".").Replace(".pyc", "")
+              if ($modulePath) {
+                Write-Output "  - $modulePath"
+              }
             }
+          } else {
+            Write-Output "  Build directory not found at: $buildDir"
           }
         shell: pwsh
         continue-on-error: true
@@ -209,8 +219,8 @@ jobs:
             "charset_normalizer"
           )
           
-          # Check build directory for these modules
-          $buildDir = "app\build\MDI AutoLogin"
+          # Check build directory for these modules (PyInstaller uses workpath=build)
+          $buildDir = "app\build\build"
           $missingModules = @()
           $foundModules = @()
           
@@ -270,8 +280,11 @@ jobs:
           Write-Output "=== DATA FILES VERIFICATION ==="
           Write-Output ""
           
-          $buildDir = "app\build\MDI AutoLogin"
+          $buildDir = "app\build\build"
           $dataDirs = @("tcl", "tk", "certifi")
+          
+          # Also check in the PYZ archive location
+          $pyzDir = "app\build\build"
           
           foreach ($dataDir in $dataDirs) {
             $dataPath = "$buildDir\$dataDir"
@@ -315,7 +328,7 @@ jobs:
           Write-Output "=== GENERATING MODULE REPORT ==="
           Write-Output ""
           
-          $buildDir = "app\build\MDI AutoLogin"
+          $buildDir = "app\build\build"
           $reportFile = "module_report.txt"
           
           if (Test-Path $buildDir) {
@@ -398,7 +411,7 @@ jobs:
           Write-Output ""
           
           $exePath = "app\dist\MDI AutoLogin.exe"
-          $buildDir = "app\build\MDI AutoLogin"
+          $buildDir = "app\build\build"
           
           # Check EXE
           if (Test-Path $exePath) {

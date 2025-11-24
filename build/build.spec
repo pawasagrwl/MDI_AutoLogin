@@ -78,6 +78,8 @@ a = Analysis(
         'keyring.backends',
         'keyring.backends.Windows',
         'keyring.backends.Windows.WinVaultKeyring',
+        'keyring.backends.windows',
+        'keyring.backends.windows.WinVaultKeyring',
         'keyring.backends.macOS',
         # Jaraco packages (used by keyring)
         'jaraco',
@@ -91,8 +93,10 @@ a = Analysis(
         'urllib3',  # Required by requests
         'urllib3.util',  # Required by urllib3
         'urllib3.util.ssl_',  # Required by urllib3
-        'urllib3.packages',  # Required by urllib3
-        'urllib3.packages.ssl_match_hostname',  # Required by urllib3
+        'urllib3.packages',  # Required by urllib3 (may not exist in newer urllib3)
+        'urllib3.packages.ssl_match_hostname',  # Required by urllib3 (may not exist in newer urllib3)
+        'urllib3.contrib',  # Additional urllib3 modules
+        'urllib3.contrib.pyopenssl',  # SSL support
         'charset_normalizer',  # Required by requests
         'idna',
         'idna.core',

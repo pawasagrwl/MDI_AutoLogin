@@ -128,7 +128,344 @@ jobs:
             exit 1
           }
           Write-Output "Build successful: EXE found at $exePath"
+          
+          # Get EXE file size
+          $exeInfo = Get-Item $exePath
+          Write-Output "EXE size: $([math]::Round($exeInfo.Length / 1MB, 2)) MB"
         shell: pwsh
+      
+      - name: Diagnostic - Analyze PyInstaller Build Output
+        run: |
+          Write-Output "=== PYINSTALLER BUILD ANALYSIS ==="
+          Write-Output ""
+          
+          # Check for build warnings
+          Write-Output "=== CHECKING BUILD LOG FOR WARNINGS ==="
+          $buildLog = "app\build\MDI AutoLogin\warn-MDI AutoLogin.txt"
+          if (Test-Path $buildLog) {
+            Write-Output "Found build warnings log:"
+            $warnings = Get-Content $buildLog -ErrorAction SilentlyContinue
+            if ($warnings) {
+              Write-Output $warnings
+            } else {
+              Write-Output "  No warnings found (good!)"
+            }
+          } else {
+            Write-Output "  Warning log not found (this is normal for clean builds)"
+          }
+          Write-Output ""
+          
+          # Check for analysis file
+          Write-Output "=== CHECKING FOR ANALYSIS FILE ==="
+          $analysisFile = "app\build\MDI AutoLogin\Analysis-00.toc"
+          if (Test-Path $analysisFile) {
+            Write-Output "✓ Analysis file found"
+            Write-Output "  This file contains information about collected modules"
+          } else {
+            Write-Output "✗ Analysis file not found"
+          }
+          Write-Output ""
+          
+          # Try to extract module information from build directory
+          Write-Output "=== CHECKING COLLECTED MODULES ==="
+          $buildDir = "app\build\MDI AutoLogin"
+          if (Test-Path $buildDir) {
+            $pyFiles = Get-ChildItem -Path $buildDir -Recurse -Filter "*.pyc" -ErrorAction SilentlyContinue | Select-Object -First 50
+            Write-Output "Found $($pyFiles.Count) compiled Python files (showing first 50)"
+            $pyFiles | ForEach-Object {
+              $modulePath = $_.FullName.Replace($buildDir, "").Replace("\", ".").Replace(".pyc", "")
+              Write-Output "  - $modulePath"
+            }
+          }
+        shell: pwsh
+        continue-on-error: true
+      
+      - name: Diagnostic - Check Critical Modules
+        run: |
+          Write-Output "=== CRITICAL MODULE VERIFICATION ==="
+          Write-Output ""
+          
+          # List of critical modules that must be included
+          $criticalModules = @(
+            "unicodedata",
+            "hmac",
+            "http",
+            "http.client",
+            "urllib",
+            "urllib.request",
+            "urllib.parse",
+            "certifi",
+            "urllib3",
+            "requests",
+            "keyring",
+            "jaraco.context",
+            "jaraco.classes",
+            "backports.tarfile",
+            "psutil",
+            "pystray",
+            "PIL",
+            "tkinter",
+            "idna",
+            "charset_normalizer"
+          )
+          
+          # Check build directory for these modules
+          $buildDir = "app\build\MDI AutoLogin"
+          $missingModules = @()
+          $foundModules = @()
+          
+          if (Test-Path $buildDir) {
+            foreach ($module in $criticalModules) {
+              $modulePath = $module.Replace(".", "\")
+              $possiblePaths = @(
+                "$buildDir\$modulePath.pyc",
+                "$buildDir\$modulePath\__init__.pyc",
+                "$buildDir\$modulePath.py"
+              )
+              
+              $found = $false
+              foreach ($path in $possiblePaths) {
+                if (Test-Path $path) {
+                  $found = $true
+                  break
+                }
+              }
+              
+              # Also check for package directories
+              if (-not $found) {
+                $packageDir = "$buildDir\$modulePath"
+                if (Test-Path $packageDir -PathType Container) {
+                  $found = $true
+                }
+              }
+              
+              if ($found) {
+                $foundModules += $module
+                Write-Output "✓ $module"
+              } else {
+                $missingModules += $module
+                Write-Output "✗ $module (NOT FOUND)"
+              }
+            }
+          } else {
+            Write-Output "⚠ Build directory not found - cannot verify modules"
+          }
+          
+          Write-Output ""
+          Write-Output "=== SUMMARY ==="
+          Write-Output "Found: $($foundModules.Count) / $($criticalModules.Count) critical modules"
+          if ($missingModules.Count -gt 0) {
+            Write-Output "⚠ WARNING: Missing modules:"
+            $missingModules | ForEach-Object { Write-Output "  - $_" }
+            Write-Output ""
+            Write-Output "These modules may cause runtime errors!"
+          } else {
+            Write-Output "✓ All critical modules appear to be included"
+          }
+        shell: pwsh
+        continue-on-error: true
+      
+      - name: Diagnostic - Check Data Files
+        run: |
+          Write-Output "=== DATA FILES VERIFICATION ==="
+          Write-Output ""
+          
+          $buildDir = "app\build\MDI AutoLogin"
+          $dataDirs = @("tcl", "tk", "certifi")
+          
+          foreach ($dataDir in $dataDirs) {
+            $dataPath = "$buildDir\$dataDir"
+            if (Test-Path $dataPath) {
+              $fileCount = (Get-ChildItem -Path $dataPath -Recurse -File -ErrorAction SilentlyContinue).Count
+              Write-Output "✓ $dataDir (found, $fileCount files)"
+            } else {
+              Write-Output "✗ $dataDir (NOT FOUND)"
+            }
+          }
+          
+          # Check for certifi certificates
+          Write-Output ""
+          Write-Output "=== CERTIFI CERTIFICATES ==="
+          $certPaths = @(
+            "$buildDir\certifi\cacert.pem",
+            "$buildDir\certifi\__pycache__\cacert.cpython*.pyc"
+          )
+          $certFound = $false
+          foreach ($certPath in $certPaths) {
+            if (Test-Path $certPath) {
+              Write-Output "✓ Certificates found: $certPath"
+              $certFound = $true
+              break
+            }
+          }
+          if (-not $certFound) {
+            # Try to find any cert file
+            $anyCert = Get-ChildItem -Path $buildDir -Recurse -Filter "*cert*" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($anyCert) {
+              Write-Output "⚠ Found certificate-related file: $($anyCert.FullName)"
+            } else {
+              Write-Output "✗ No certificate files found (may cause SSL errors)"
+            }
+          }
+        shell: pwsh
+        continue-on-error: true
+      
+      - name: Diagnostic - Generate Module Report
+        run: |
+          Write-Output "=== GENERATING MODULE REPORT ==="
+          Write-Output ""
+          
+          $buildDir = "app\build\MDI AutoLogin"
+          $reportFile = "module_report.txt"
+          
+          if (Test-Path $buildDir) {
+            # Collect all Python modules
+            $allModules = @()
+            $pyFiles = Get-ChildItem -Path $buildDir -Recurse -Filter "*.pyc" -ErrorAction SilentlyContinue
+            $pySourceFiles = Get-ChildItem -Path $buildDir -Recurse -Filter "*.py" -ErrorAction SilentlyContinue
+            
+            foreach ($file in ($pyFiles + $pySourceFiles)) {
+              $relativePath = $file.FullName.Replace($buildDir, "").TrimStart("\")
+              $modulePath = $relativePath.Replace("\", ".").Replace(".pyc", "").Replace(".py", "")
+              if ($modulePath -and -not $allModules.Contains($modulePath)) {
+                $allModules += $modulePath
+              }
+            }
+            
+            # Also check for package directories
+            $packageDirs = Get-ChildItem -Path $buildDir -Directory -Recurse -ErrorAction SilentlyContinue
+            foreach ($dir in $packageDirs) {
+              $relativePath = $dir.FullName.Replace($buildDir, "").TrimStart("\")
+              $modulePath = $relativePath.Replace("\", ".")
+              if ($modulePath -and -not $allModules.Contains($modulePath)) {
+                $allModules += $modulePath
+              }
+            }
+            
+            # Sort and write report
+            $allModules = $allModules | Sort-Object
+            
+            @"
+=== MODULE INCLUSION REPORT ===
+Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+Total modules found: $($allModules.Count)
+
+=== ALL COLLECTED MODULES ===
+$($allModules -join "`n")
+
+=== KEY PACKAGES ===
+$(if ($allModules -match "certifi") { "✓ certifi" } else { "✗ certifi" })
+$(if ($allModules -match "urllib3") { "✓ urllib3" } else { "✗ urllib3" })
+$(if ($allModules -match "requests") { "✓ requests" } else { "✗ requests" })
+$(if ($allModules -match "keyring") { "✓ keyring" } else { "✗ keyring" })
+$(if ($allModules -match "jaraco") { "✓ jaraco.*" } else { "✗ jaraco.*" })
+$(if ($allModules -match "backports") { "✓ backports.*" } else { "✗ backports.*" })
+$(if ($allModules -match "psutil") { "✓ psutil" } else { "✗ psutil" })
+$(if ($allModules -match "pystray") { "✓ pystray" } else { "✗ pystray" })
+$(if ($allModules -match "PIL|Pillow") { "✓ PIL/Pillow" } else { "✗ PIL/Pillow" })
+$(if ($allModules -match "tkinter") { "✓ tkinter" } else { "✗ tkinter" })
+$(if ($allModules -match "http") { "✓ http.*" } else { "✗ http.*" })
+$(if ($allModules -match "unicodedata") { "✓ unicodedata" } else { "✗ unicodedata" })
+$(if ($allModules -match "hmac") { "✓ hmac" } else { "✗ hmac" })
+"@ | Out-File -FilePath $reportFile -Encoding UTF8
+            
+            Write-Output "Report saved to: $reportFile"
+            Write-Output "Total modules: $($allModules.Count)"
+            
+            # Upload as artifact
+            Write-Output "::notice::Module report generated with $($allModules.Count) modules"
+          } else {
+            Write-Output "⚠ Build directory not found - cannot generate report"
+          }
+        shell: pwsh
+        continue-on-error: true
+      
+      - name: Upload Module Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-diagnostics
+          path: |
+            module_report.txt
+            app/build/**/warn-*.txt
+          retention-days: 7
+      
+      - name: Diagnostic - Build Summary
+        run: |
+          Write-Output "=== BUILD DIAGNOSTIC SUMMARY ==="
+          Write-Output ""
+          
+          $exePath = "app\dist\MDI AutoLogin.exe"
+          $buildDir = "app\build\MDI AutoLogin"
+          
+          # Check EXE
+          if (Test-Path $exePath) {
+            $exeInfo = Get-Item $exePath
+            $sizeMB = [math]::Round($exeInfo.Length / 1MB, 2)
+            Write-Output "✓ EXE built successfully"
+            Write-Output "  Size: $sizeMB MB"
+            Write-Output "  Path: $exePath"
+            Write-Output "::notice title=Build Success::EXE built successfully ($sizeMB MB)"
+          } else {
+            Write-Output "✗ EXE not found"
+            Write-Output "::error title=Build Failed::EXE not found at $exePath"
+          }
+          Write-Output ""
+          
+          # Check critical modules
+          $criticalModules = @("certifi", "urllib3", "requests", "keyring", "http", "unicodedata", "hmac", "backports.tarfile", "jaraco.context")
+          $foundCount = 0
+          $missingCount = 0
+          
+          if (Test-Path $buildDir) {
+            foreach ($module in $criticalModules) {
+              $modulePath = $module.Replace(".", "\")
+              $found = (Test-Path "$buildDir\$modulePath") -or 
+                       (Test-Path "$buildDir\$modulePath.pyc") -or 
+                       (Test-Path "$buildDir\$modulePath\__init__.pyc") -or
+                       (Get-ChildItem -Path $buildDir -Recurse -Filter "*$module*" -ErrorAction SilentlyContinue | Select-Object -First 1)
+              
+              if ($found) {
+                $foundCount++
+              } else {
+                $missingCount++
+                Write-Output "::warning title=Missing Module::Module '$module' not found in build"
+              }
+            }
+            
+            Write-Output "Module check: $foundCount found, $missingCount missing"
+            if ($missingCount -eq 0) {
+              Write-Output "::notice title=Module Check::All critical modules included"
+            } else {
+              Write-Output "::warning title=Module Check::$missingCount critical modules may be missing"
+            }
+          }
+          Write-Output ""
+          
+          # Check data files
+          $dataFiles = @("tcl", "tk", "certifi")
+          $dataFound = 0
+          foreach ($data in $dataFiles) {
+            if (Test-Path "$buildDir\$data") {
+              $dataFound++
+            }
+          }
+          Write-Output "Data files: $dataFound / $($dataFiles.Count) found"
+          Write-Output ""
+          
+          # Final status
+          if ((Test-Path $exePath) -and $missingCount -eq 0) {
+            Write-Output "✓ BUILD STATUS: SUCCESS"
+            Write-Output "  All checks passed"
+          } elseif (Test-Path $exePath) {
+            Write-Output "⚠ BUILD STATUS: WARNING"
+            Write-Output "  EXE built but some modules may be missing"
+          } else {
+            Write-Output "✗ BUILD STATUS: FAILED"
+            Write-Output "  EXE not found"
+          }
+        shell: pwsh
+        continue-on-error: true
       
       - name: Get version from tag or input
         id: get_version

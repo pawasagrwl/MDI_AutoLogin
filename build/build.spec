@@ -51,6 +51,24 @@ a = Analysis(
         # Built-in modules that PyInstaller sometimes misses
         'unicodedata',
         'hmac',  # Required by urllib3 (used by requests)
+        'http',  # Required by urllib.request (used by jaraco.context)
+        'http.client',
+        'http.server',
+        'http.cookiejar',
+        'urllib',  # Standard library urllib (not urllib3)
+        'urllib.request',
+        'urllib.parse',
+        'urllib.error',
+        'urllib.response',
+        'email',  # Sometimes required by urllib
+        'email.message',
+        'email.policy',
+        'encodings',  # Required for text encoding
+        'encodings.idna',
+        'encodings.utf_8',
+        'encodings.ascii',
+        'encodings.latin_1',
+        'pkgutil',  # Used for package discovery
         # Pystray dependencies
         'pystray._win32',
         'pystray._darwin',
@@ -61,6 +79,11 @@ a = Analysis(
         'keyring.backends.Windows',
         'keyring.backends.Windows.WinVaultKeyring',
         'keyring.backends.macOS',
+        # Jaraco packages (used by keyring)
+        'jaraco',
+        'jaraco.classes',
+        'jaraco.context',
+        'jaraco.functools',
         # PIL/Pillow for pystray icon handling
         'PIL._tkinter_finder',
         # Requests dependencies - collect all submodules to ensure everything is included
@@ -82,7 +105,7 @@ a = Analysis(
         # Additional common dependencies that might be missed
         'importlib_metadata',  # Used by various packages
         'zipp',  # Used by importlib_metadata
-    ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3') + collect_submodules('backports'),
+    ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3') + collect_submodules('backports') + collect_submodules('jaraco'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=runtime_hooks,

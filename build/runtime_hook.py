@@ -10,6 +10,21 @@ try:
 except ImportError:
     pass
 
+# Ensure http module is available (required by urllib.request)
+try:
+    import http
+    import http.client
+except ImportError:
+    pass
+
+# Ensure urllib modules are available (standard library, not urllib3)
+try:
+    import urllib.request
+    import urllib.parse
+    import urllib.error
+except ImportError:
+    pass
+
 # Ensure certifi is available (required by requests for SSL certificates)
 try:
     import certifi
@@ -19,6 +34,14 @@ except ImportError:
 # Ensure backports are available (used by various packages)
 try:
     import backports.tarfile
+except ImportError:
+    pass
+
+# Ensure jaraco packages are available (used by keyring)
+try:
+    import jaraco.context
+    import jaraco.classes
+    import jaraco.functools
 except ImportError:
     pass
 

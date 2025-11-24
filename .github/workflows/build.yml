@@ -225,27 +225,54 @@ jobs:
           $foundModules = @()
           
           if (Test-Path $buildDir) {
+            # Check TOC file first (most reliable source)
+            $tocFile = "$buildDir\Analysis-00.toc"
+            $tocContent = $null
+            if (Test-Path $tocFile) {
+              $tocContent = Get-Content $tocFile -Raw -ErrorAction SilentlyContinue
+            }
+            
             foreach ($module in $criticalModules) {
-              $modulePath = $module.Replace(".", "\")
-              $possiblePaths = @(
-                "$buildDir\$modulePath.pyc",
-                "$buildDir\$modulePath\__init__.pyc",
-                "$buildDir\$modulePath.py"
-              )
-              
               $found = $false
-              foreach ($path in $possiblePaths) {
-                if (Test-Path $path) {
-                  $found = $true
-                  break
-                }
+              
+              # Check TOC file for module name
+              if ($tocContent -and $tocContent -match [regex]::Escape("'$module'")) {
+                $found = $true
               }
               
-              # Also check for package directories
+              # Also check in localpycs directories (where PyInstaller stores modules with noarchive=True)
               if (-not $found) {
-                $packageDir = "$buildDir\$modulePath"
-                if (Test-Path $packageDir -PathType Container) {
-                  $found = $true
+                $modulePath = $module.Replace(".", "\")
+                $searchPaths = @(
+                  "$buildDir\localpycs\*\*\$modulePath.pyc",
+                  "$buildDir\localpycs\*\*\$modulePath\__init__.pyc",
+                  "$buildDir\$modulePath.pyc",
+                  "$buildDir\$modulePath\__init__.pyc",
+                  "$buildDir\$modulePath.py"
+                )
+                
+                foreach ($pattern in $searchPaths) {
+                  $matches = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
+                  if ($matches) {
+                    $found = $true
+                    break
+                  }
+                }
+                
+                # Check for package directories
+                if (-not $found) {
+                  $packageDirs = Get-ChildItem -Path $buildDir -Recurse -Directory -Filter $modulePath -ErrorAction SilentlyContinue
+                  if ($packageDirs) {
+                    $found = $true
+                  }
+                }
+                
+                # Check for any file/directory containing module name
+                if (-not $found) {
+                  $anyMatch = Get-ChildItem -Path $buildDir -Recurse -Filter "*$module*" -ErrorAction SilentlyContinue | Select-Object -First 1
+                  if ($anyMatch) {
+                    $found = $true
+                  }
                 }
               }
               
@@ -286,21 +313,36 @@ jobs:
           # Also check in the PYZ archive location
           $pyzDir = "app\build\build"
           
+          # Check for data files in multiple locations (they may be in dist or build)
+          $distDir = "app\dist"
+          $possibleDataLocations = @($buildDir, $distDir)
+          
           foreach ($dataDir in $dataDirs) {
-            $dataPath = "$buildDir\$dataDir"
-            if (Test-Path $dataPath) {
-              $fileCount = (Get-ChildItem -Path $dataPath -Recurse -File -ErrorAction SilentlyContinue).Count
-              Write-Output "✓ $dataDir (found, $fileCount files)"
-            } else {
-              Write-Output "✗ $dataDir (NOT FOUND)"
+            $found = $false
+            $fileCount = 0
+            
+            foreach ($basePath in $possibleDataLocations) {
+              $dataPath = "$basePath\$dataDir"
+              if (Test-Path $dataPath) {
+                $fileCount = (Get-ChildItem -Path $dataPath -Recurse -File -ErrorAction SilentlyContinue).Count
+                Write-Output "✓ $dataDir (found at $basePath, $fileCount files)"
+                $found = $true
+                break
+              }
+            }
+            
+            if (-not $found) {
+              # Also check if it's embedded in the EXE (onefile mode)
+              Write-Output "⚠ $dataDir (not found in build dir - may be embedded in EXE)"
             }
           }
           
-          # Check for certifi certificates
+          # Check for certifi certificates in multiple locations
           Write-Output ""
           Write-Output "=== CERTIFI CERTIFICATES ==="
           $certPaths = @(
             "$buildDir\certifi\cacert.pem",
+            "$distDir\certifi\cacert.pem",
             "$buildDir\certifi\__pycache__\cacert.cpython*.pyc"
           )
           $certFound = $false
@@ -317,7 +359,7 @@ jobs:
             if ($anyCert) {
               Write-Output "⚠ Found certificate-related file: $($anyCert.FullName)"
             } else {
-              Write-Output "✗ No certificate files found (may cause SSL errors)"
+              Write-Output "⚠ Certificates not found in build dir (may be embedded in EXE with onefile mode)"
             }
           }
         shell: pwsh
@@ -433,12 +475,30 @@ jobs:
           $missingCount = 0
           
           if (Test-Path $buildDir) {
+            # Check TOC file first (most reliable)
+            $tocFile = "$buildDir\Analysis-00.toc"
+            $tocContent = $null
+            if (Test-Path $tocFile) {
+              $tocContent = Get-Content $tocFile -Raw -ErrorAction SilentlyContinue
+            }
+            
             foreach ($module in $criticalModules) {
-              $modulePath = $module.Replace(".", "\")
-              $found = (Test-Path "$buildDir\$modulePath") -or 
-                       (Test-Path "$buildDir\$modulePath.pyc") -or 
-                       (Test-Path "$buildDir\$modulePath\__init__.pyc") -or
-                       (Get-ChildItem -Path $buildDir -Recurse -Filter "*$module*" -ErrorAction SilentlyContinue | Select-Object -First 1)
+              $found = $false
+              
+              # Check TOC file
+              if ($tocContent -and $tocContent -match [regex]::Escape("'$module'")) {
+                $found = $true
+              }
+              
+              # Also check file system
+              if (-not $found) {
+                $modulePath = $module.Replace(".", "\")
+                $found = (Test-Path "$buildDir\localpycs\*\*\$modulePath.pyc") -or
+                         (Test-Path "$buildDir\$modulePath") -or 
+                         (Test-Path "$buildDir\$modulePath.pyc") -or 
+                         (Test-Path "$buildDir\$modulePath\__init__.pyc") -or
+                         (Get-ChildItem -Path $buildDir -Recurse -Filter "*$module*" -ErrorAction SilentlyContinue | Select-Object -First 1)
+              }
               
               if ($found) {
                 $foundCount++

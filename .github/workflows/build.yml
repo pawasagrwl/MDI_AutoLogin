@@ -345,29 +345,31 @@ jobs:
             # Sort and write report
             $allModules = $allModules | Sort-Object
             
-            @"
-=== MODULE INCLUSION REPORT ===
-Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-Total modules found: $($allModules.Count)
-
-=== ALL COLLECTED MODULES ===
-$($allModules -join "`n")
-
-=== KEY PACKAGES ===
-$(if ($allModules -match "certifi") { "✓ certifi" } else { "✗ certifi" })
-$(if ($allModules -match "urllib3") { "✓ urllib3" } else { "✗ urllib3" })
-$(if ($allModules -match "requests") { "✓ requests" } else { "✗ requests" })
-$(if ($allModules -match "keyring") { "✓ keyring" } else { "✗ keyring" })
-$(if ($allModules -match "jaraco") { "✓ jaraco.*" } else { "✗ jaraco.*" })
-$(if ($allModules -match "backports") { "✓ backports.*" } else { "✗ backports.*" })
-$(if ($allModules -match "psutil") { "✓ psutil" } else { "✗ psutil" })
-$(if ($allModules -match "pystray") { "✓ pystray" } else { "✗ pystray" })
-$(if ($allModules -match "PIL|Pillow") { "✓ PIL/Pillow" } else { "✗ PIL/Pillow" })
-$(if ($allModules -match "tkinter") { "✓ tkinter" } else { "✗ tkinter" })
-$(if ($allModules -match "http") { "✓ http.*" } else { "✗ http.*" })
-$(if ($allModules -match "unicodedata") { "✓ unicodedata" } else { "✗ unicodedata" })
-$(if ($allModules -match "hmac") { "✓ hmac" } else { "✗ hmac" })
-"@ | Out-File -FilePath $reportFile -Encoding UTF8
+            # Build report content line by line to avoid YAML parsing issues
+            $reportContent = @()
+            $reportContent += "=== MODULE INCLUSION REPORT ==="
+            $reportContent += "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            $reportContent += "Total modules found: $($allModules.Count)"
+            $reportContent += ""
+            $reportContent += "=== ALL COLLECTED MODULES ==="
+            $reportContent += ($allModules -join "`n")
+            $reportContent += ""
+            $reportContent += "=== KEY PACKAGES ==="
+            $reportContent += $(if ($allModules -match "certifi") { "✓ certifi" } else { "✗ certifi" })
+            $reportContent += $(if ($allModules -match "urllib3") { "✓ urllib3" } else { "✗ urllib3" })
+            $reportContent += $(if ($allModules -match "requests") { "✓ requests" } else { "✗ requests" })
+            $reportContent += $(if ($allModules -match "keyring") { "✓ keyring" } else { "✗ keyring" })
+            $reportContent += $(if ($allModules -match "jaraco") { "✓ jaraco.*" } else { "✗ jaraco.*" })
+            $reportContent += $(if ($allModules -match "backports") { "✓ backports.*" } else { "✗ backports.*" })
+            $reportContent += $(if ($allModules -match "psutil") { "✓ psutil" } else { "✗ psutil" })
+            $reportContent += $(if ($allModules -match "pystray") { "✓ pystray" } else { "✗ pystray" })
+            $reportContent += $(if ($allModules -match "PIL|Pillow") { "✓ PIL/Pillow" } else { "✗ PIL/Pillow" })
+            $reportContent += $(if ($allModules -match "tkinter") { "✓ tkinter" } else { "✗ tkinter" })
+            $reportContent += $(if ($allModules -match "http") { "✓ http.*" } else { "✗ http.*" })
+            $reportContent += $(if ($allModules -match "unicodedata") { "✓ unicodedata" } else { "✗ unicodedata" })
+            $reportContent += $(if ($allModules -match "hmac") { "✓ hmac" } else { "✗ hmac" })
+            
+            $reportContent -join "`n" | Out-File -FilePath $reportFile -Encoding UTF8
             
             Write-Output "Report saved to: $reportFile"
             Write-Output "Total modules: $($allModules.Count)"

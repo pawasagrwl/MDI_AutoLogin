@@ -74,9 +74,15 @@ a = Analysis(
         'idna',
         'idna.core',
         'idna.idnadata',
+        # Backports (used by various packages)
+        'backports',
+        'backports.tarfile',
         # Single-instance enforcement
         'psutil',  # Required for detecting and killing old instances
-    ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3'),
+        # Additional common dependencies that might be missed
+        'importlib_metadata',  # Used by various packages
+        'zipp',  # Used by importlib_metadata
+    ] + collect_submodules('idna') + collect_submodules('certifi') + collect_submodules('urllib3') + collect_submodules('backports'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=runtime_hooks,

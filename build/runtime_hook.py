@@ -4,9 +4,21 @@ import os
 import sys
 import warnings
 
-# Ensure unicodedata is available (required by idna)
+# Ensure critical modules are available early
 try:
     import unicodedata
+except ImportError:
+    pass
+
+# Ensure certifi is available (required by requests for SSL certificates)
+try:
+    import certifi
+except ImportError:
+    pass
+
+# Ensure backports are available (used by various packages)
+try:
+    import backports.tarfile
 except ImportError:
     pass
 

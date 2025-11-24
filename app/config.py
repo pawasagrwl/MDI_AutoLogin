@@ -29,7 +29,7 @@ if platform.system() == "Windows":
         pass
 
 APP_NAME = "MDI AutoLogin"
-APP_VERSION = "0.1.4"  # Update this when releasing new versions
+APP_VERSION = "0.1.5"  # Update this when releasing new versions
 DEVELOPER_NAME = "Pawas Aggarwal"  # Update with your name/username
 SERVICE_NAME = "MDI_AutoLogin"
 DEFAULT_SSID = "MDI"
